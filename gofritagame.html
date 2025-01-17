@@ -1,0 +1,266 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Gofrita Game</title>
+    <link href="https://fonts.cdnjs.com/css?family=Quicksand:400,700" rel="stylesheet">
+    <style>
+        body {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            height: 100vh;
+            margin: 0;
+            background: linear-gradient(135deg, #FFB6C1, #FFE5D9);
+            font-family: 'Quicksand', sans-serif;
+        }
+        #game-container {
+            position: relative;
+            width: 300px;
+            height: 500px;
+            background: rgba(255, 255, 255, 0.9);
+            border-radius: 20px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+            overflow: hidden;
+        }
+        #hamster {
+            position: absolute;
+            width: 60px;
+            height: 70px;
+            cursor: grab;
+            user-select: none;
+            transform-origin: center;
+            z-index: 1000;
+        }
+        .hamster-body {
+            position: absolute;
+            width: 60px;
+            height: 50px;
+            background: linear-gradient(145deg, #8B4513, #A0522D);
+            border-radius: 30px;
+            box-shadow: 0 4px 8px rgba(0,0,0,0.2);
+            transition: transform 0.2s;
+        }
+        .hamster-belly {
+            position: absolute;
+            width: 40px;
+            height: 35px;
+            background: linear-gradient(145deg, #DEB887, #F5DEB3);
+            border-radius: 20px;
+            bottom: 5px;
+            left: 10px;
+        }
+        .ear {
+            position: absolute;
+            width: 18px;
+            height: 18px;
+            background: linear-gradient(145deg, #8B4513, #A0522D);
+            border-radius: 50%;
+            top: -10px;
+            transition: transform 0.2s;
+        }
+        .ear.left { 
+            left: 10px;
+            transform: rotate(-5deg);
+        }
+        .ear.right { 
+            right: 10px;
+            transform: rotate(5deg);
+        }
+        .eye {
+            position: absolute;
+            width: 8px;
+            height: 8px;
+            background-color: #000;
+            border-radius: 50%;
+            top: 20px;
+            transition: transform 0.2s;
+        }
+        .eye.left { left: 15px; }
+        .eye.right { right: 15px; }
+        .nose {
+            position: absolute;
+            width: 10px;
+            height: 6px;
+            background: linear-gradient(145deg, #FF69B4, #FF1493);
+            border-radius: 5px;
+            top: 30px;
+            left: 25px;
+        }
+        #score {
+            font-size: 38px;
+            margin-bottom: 20px;
+            color: #4A4A4A;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.1);
+            font-weight: bold;
+        }
+        .trail {
+            position: absolute;
+            pointer-events: none;
+            border-radius: 50%;
+            animation: trail 0.8s ease-out forwards;
+        }
+        @keyframes trail {
+            0% {
+                opacity: 0.7;
+                transform: scale(1);
+            }
+            100% {
+                opacity: 0;
+                transform: scale(0);
+            }
+        }
+        .score-pop {
+            position: absolute;
+            color: #FF1493;
+            font-size: 24px;
+            font-weight: bold;
+            pointer-events: none;
+            animation: scorePop 0.6s ease-out forwards;
+            z-index: 1000;
+        }
+        @keyframes scorePop {
+            0% {
+                transform: translateY(0) scale(1);
+                opacity: 1;
+            }
+            100% {
+                transform: translateY(-50px) scale(1.5);
+                opacity: 0;
+            }
+        }
+        #game-container::after {
+            content: '';
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            height: 100px;
+            background: linear-gradient(transparent, rgba(255,182,193,0.2));
+            pointer-events: none;
+        }
+    </style>
+</head>
+<body>
+    <div id="score">Score: 0</div>
+    <div id="game-container">
+        <div id="hamster">
+            <div class="ear left"></div>
+            <div class="ear right"></div>
+            <div class="hamster-body">
+                <div class="hamster-belly"></div>
+                <div class="eye left"></div>
+                <div class="eye right"></div>
+                <div class="nose"></div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const hamster = document.getElementById('hamster');
+        const container = document.getElementById('game-container');
+        const scoreDisplay = document.getElementById('score');
+        let score = 0;
+        let isDragging = false;
+        let startY;
+        let startTop;
+        let lastTrailTime = 0;
+
+        function createTrailEffect(x, y) {
+            const now = Date.now();
+            if (now - lastTrailTime > 50) {
+                const trail = document.createElement('div');
+                trail.className = 'trail';
+                trail.style.left = `${x}px`;
+                trail.style.top = `${y}px`;
+                trail.style.width = '20px';
+                trail.style.height = '20px';
+                trail.style.background = `hsl(${Math.random() * 50 + 330}, 80%, 80%)`;
+                container.appendChild(trail);
+                setTimeout(() => trail.remove(), 800);
+                lastTrailTime = now;
+            }
+        }
+
+        function createScorePopup(x, y) {
+            const popup = document.createElement('div');
+            popup.className = 'score-pop';
+            popup.textContent = '+1';
+            popup.style.left = `${x}px`;
+            popup.style.top = `${y}px`;
+            container.appendChild(popup);
+            setTimeout(() => popup.remove(), 600);
+        }
+
+        function resetHamster() {
+            const randomX = Math.random() * (container.offsetWidth - hamster.offsetWidth);
+            hamster.style.transition = 'all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1)';
+            hamster.style.left = `${randomX}px`;
+            hamster.style.top = '0px';
+            hamster.style.transform = 'rotate(0deg)';
+            setTimeout(() => {
+                hamster.style.transition = 'none';
+            }, 300);
+        }
+
+        function onDragStart(e) {
+            if (e.type === 'mousedown' || e.type === 'touchstart') {
+                isDragging = true;
+                startY = (e.type === 'mousedown') ? e.clientY : e.touches[0].clientY;
+                startTop = parseInt(hamster.style.top) || 0;
+                hamster.style.cursor = 'grabbing';
+                hamster.classList.add('dragging');
+            }
+        }
+
+        function onDragMove(e) {
+            if (!isDragging) return;
+            e.preventDefault();
+            
+            const currentY = (e.type === 'mousemove') ? e.clientY : e.touches[0].clientY;
+            const currentX = (e.type === 'mousemove') ? e.clientX : e.touches[0].clientX;
+            const deltaY = currentY - startY;
+            const newTop = Math.min(Math.max(startTop + deltaY, 0), container.offsetHeight - hamster.offsetHeight);
+            
+            hamster.style.top = `${newTop}px`;
+            
+            // Rotation effect
+            const rotation = (deltaY / container.offsetHeight) * 20;
+            hamster.style.transform = `rotate(${rotation}deg)`;
+
+            // Trail effect
+            const rect = container.getBoundingClientRect();
+            const relativeX = currentX - rect.left;
+            const relativeY = currentY - rect.top;
+            createTrailEffect(relativeX, relativeY);
+
+            if (newTop >= container.offsetHeight - hamster.offsetHeight) {
+                isDragging = false;
+                score++;
+                scoreDisplay.textContent = `Score: ${score}`;
+                createScorePopup(parseInt(hamster.style.left), newTop);
+                resetHamster();
+            }
+        }
+
+        function onDragEnd() {
+            isDragging = false;
+            hamster.style.cursor = 'grab';
+            hamster.classList.remove('dragging');
+        }
+
+        // Mouse events
+        hamster.addEventListener('mousedown', onDragStart);
+        document.addEventListener('mousemove', onDragMove);
+        document.addEventListener('mouseup', onDragEnd);
+
+        // Touch events
+        hamster.addEventListener('touchstart', onDragStart);
+        document.addEventListener('touchmove', onDragMove);
+        document.addEventListener('touchend', onDragEnd);
+
+        // Initial position
+        resetHamster();
+    </script>
+</body>
+</html>
